@@ -32,6 +32,15 @@ fn repr(node: AstNode(a)) -> String {
   rec_repr(node, "")
 }
 
+fn left_strip(line: String) -> String {
+  case line {
+    "   " <> rest -> rest
+    "  " <> rest -> rest
+    " " <> rest -> rest
+    _ -> line
+  }
+}
+
 fn should_close_block(node: BlockNode, line: String) -> Bool {
   case node {
     Document -> False
