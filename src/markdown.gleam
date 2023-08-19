@@ -1,5 +1,7 @@
 import gleam/io
+import gleam/erlang
 
 pub fn main() {
-  io.println("Hello from markdown!")
+  let assert Ok(line) = erlang.get_line("")
+  io.println(line)
 }
