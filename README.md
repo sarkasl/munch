@@ -22,15 +22,3 @@ gleam add markdown
 ```
 
 and its documentation can be found at <https://hexdocs.pm/markdown>. -->
-
-## Running tests against spec [https://spec.commonmark.org/0.30/](https://spec.commonmark.org/0.30/)
-
-Tests taken from [commonmark-spec](https://github.com/commonmark/commonmark-spec) repository.
-Python, colordiff and Erlang need to be installed to run these.
-
-```sh
-# run all tests
-./run-tests.sh
-# run a section of tests based on regex pattern
-./run-tests.sh --pattern Tabs
-```
