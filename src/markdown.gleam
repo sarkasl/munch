@@ -60,6 +60,12 @@ fn maybe_create(maybe_item: Option(a)) -> List(a) {
   }
 }
 
+fn format_heading(level: Int, text: String) -> BlockNode {
+  todo
+
+  Leaf(Heading(level, trimmed))
+}
+
 fn create_block(text: String) -> Option(BlockNode) {
   let stripped = trim_up_to_3(text)
   case stripped {
@@ -67,12 +73,12 @@ fn create_block(text: String) -> Option(BlockNode) {
     "> " <> rest | ">\t" <> rest ->
       Some(Container(BlockQuote, maybe_create(create_block(rest))))
     ">" <> rest -> Some(Container(BlockQuote, maybe_create(create_block(rest))))
-    "# " <> rest | "#\t" <> rest -> Some(Leaf(Heading(1, rest)))
-    "## " <> rest | "##\t" <> rest -> Some(Leaf(Heading(2, rest)))
-    "### " <> rest | "###\t" <> rest -> Some(Leaf(Heading(3, rest)))
-    "#### " <> rest | "####\t" <> rest -> Some(Leaf(Heading(4, rest)))
-    "##### " <> rest | "#####\t" <> rest -> Some(Leaf(Heading(5, rest)))
-    "###### " <> rest | "######\t" <> rest -> Some(Leaf(Heading(6, rest)))
+    "# " <> rest | "#\t" <> rest -> Some(format_heading(1, rest))
+    "## " <> rest | "##\t" <> rest -> Some(format_heading(2, rest))
+    "### " <> rest | "###\t" <> rest -> Some(format_heading(3, rest))
+    "#### " <> rest | "####\t" <> rest -> Some(format_heading(4, rest))
+    "##### " <> rest | "#####\t" <> rest -> Some(format_heading(5, rest))
+    "###### " <> rest | "######\t" <> rest -> Some(format_heading(6, rest))
     text -> Some(Leaf(Paragraph(string_builder.from_string(text))))
   }
 }
@@ -191,7 +197,7 @@ pub fn main() {
   let input =
     string.trim(
       "
-
+# foo#
 ",
     )
 
