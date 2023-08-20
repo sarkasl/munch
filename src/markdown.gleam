@@ -17,7 +17,6 @@ type BlockContainer {
 type BlockLeaf {
   Paragraph(text: StringBuilder)
   Heading(level: Int, text: String)
-  Empty
 }
 
 // IndentCode(text: StringBuilder)
@@ -28,114 +27,155 @@ type BlockNode =
   AstNode(BlockContainer, BlockLeaf)
 
 type BlockParserState {
-  Open(blocks: String)
-  Closing(blocks: String)
+  Open(text: String)
+  Closed(text: String)
 }
 
-fn trim_up_to_3(blocks: String) -> String {
-  case blocks {
-    "    " <> _ -> blocks
+type Dirtiness {
+  Dirty
+  Clean
+}
+
+fn trim_up_to_3(text: String) -> String {
+  case text {
+    "    " <> _ | " \t" <> _ | "  \t" <> _ | "   \t" <> _ -> text
     "   " <> rest -> rest
     "  " <> rest -> rest
     " " <> rest -> rest
-    _ -> blocks
+    _ -> text
   }
 }
 
-fn parse_container(
-  container: BlockContainer,
-  blocks: String,
+fn maybe_add(list: List(a), maybe_item: Option(a)) -> List(a) {
+  case maybe_item {
+    Some(item) -> [item, ..list]
+    None -> list
+  }
+}
+
+fn maybe_create(maybe_item: Option(a)) -> List(a) {
+  case maybe_item {
+    Some(item) -> [item]
+    None -> []
+  }
+}
+
+fn create_block(text: String) -> Option(BlockNode) {
+  let stripped = trim_up_to_3(text)
+  case stripped {
+    "" -> None
+    "> " <> rest | ">\t" <> rest ->
+      Some(Container(BlockQuote, maybe_create(create_block(rest))))
+    ">" <> rest -> Some(Container(BlockQuote, maybe_create(create_block(rest))))
+    "# " <> rest | "#\t" <> rest -> Some(Leaf(Heading(1, rest)))
+    "## " <> rest | "##\t" <> rest -> Some(Leaf(Heading(2, rest)))
+    "### " <> rest | "###\t" <> rest -> Some(Leaf(Heading(3, rest)))
+    "#### " <> rest | "####\t" <> rest -> Some(Leaf(Heading(4, rest)))
+    "##### " <> rest | "#####\t" <> rest -> Some(Leaf(Heading(5, rest)))
+    "###### " <> rest | "######\t" <> rest -> Some(Leaf(Heading(6, rest)))
+    text -> Some(Leaf(Paragraph(string_builder.from_string(text))))
+  }
+}
+
+fn eval_block(
+  block: BlockContainer,
+  state: BlockParserState,
 ) -> BlockParserState {
-  let normalized = string.replace(blocks, "\t", "    ")
-  let stripped = trim_up_to_3(normalized)
-  case container {
-    Document -> Open(blocks)
+  let stripped = trim_up_to_3(state.text)
+  case block {
+    Document -> Open(state.text)
     BlockQuote ->
       case stripped {
-        "> " <> rest -> Open(rest)
+        "> " <> rest | ">\t" <> rest -> Open(rest)
         ">" <> rest -> Open(rest)
-        _ -> Closing(blocks)
+        _ -> Closed(state.text)
       }
   }
 }
 
-fn try_appending(value: BlockLeaf, blocks: String) -> Option(BlockLeaf) {
-  case value {
-    Heading(..) -> None
-    Empty -> None
-    Paragraph(text) ->
-      case string.trim_left(blocks) {
-        "" -> None
-        new_text ->
-          Some(Paragraph(string_builder.append(text, "\n" <> new_text)))
-      }
-  }
-}
-
-fn new_node(blocks: String) -> List(BlockNode) {
-  let normalized = string.replace(blocks, "\t", "    ")
-  let stripped = trim_up_to_3(normalized)
-  case stripped {
-    "" -> [Leaf(Empty)]
-    "> " <> rest -> [Container(BlockQuote, new_node(rest))]
-    ">" <> rest -> [Container(BlockQuote, new_node(rest))]
-    "# " <> rest -> [Leaf(Heading(1, rest))]
-    "## " <> rest -> [Leaf(Heading(2, rest))]
-    "### " <> rest -> [Leaf(Heading(3, rest))]
-    "#### " <> rest -> [Leaf(Heading(4, rest))]
-    "##### " <> rest -> [Leaf(Heading(5, rest))]
-    "###### " <> rest -> [Leaf(Heading(6, rest))]
-    text -> {
-      case string.trim(text) {
-        "" -> []
-        text -> [Leaf(Paragraph(string_builder.from_string(text)))]
+fn append(block: BlockLeaf, text: String) -> #(BlockLeaf, Dirtiness) {
+  case string.trim(text) {
+    "" -> #(block, Clean)
+    _ as trimmed -> {
+      let stripped = trim_up_to_3(text)
+      case block {
+        Heading(..) -> #(block, Clean)
+        Paragraph(text_builder) ->
+          case stripped {
+            ">" <> _ -> #(block, Clean)
+            "#" <> _ -> #(block, Clean)
+            _ -> #(
+              Paragraph(string_builder.append(text_builder, "\n" <> trimmed)),
+              Dirty,
+            )
+          }
       }
     }
   }
 }
 
-fn try_new_node(blocks: String) -> BlockNode {
-  let assert [node] = new_node(blocks)
-  node
-}
-
-fn parse(node: BlockNode, state: BlockParserState) -> #(List(BlockNode), Bool) {
+fn parse(node: BlockNode, state: BlockParserState) -> #(BlockNode, Dirtiness) {
+  io.debug(state)
   node
   |> ast.invert()
   |> ast.repr()
   |> io.println()
   io.println("")
-  case node, state {
-    Container(value, [child, ..rest]), Open(blocks) -> {
-      let new_state = parse_container(value, blocks)
-      let #(new_children, dirty) = parse(child, new_state)
-      case new_state, dirty {
-        _, True -> #(
-          [Container(value, list.concat([new_children, rest]))],
-          True,
-        )
-        Closing(..), False -> #([try_new_node(new_state.blocks), node], True)
-        Open(..), False -> #([node], False)
+
+  case state, node {
+    Open(text), Container(block, []) -> {
+      #(Container(block, maybe_create(create_block(text))), Dirty)
+    }
+    Open(text) as state, Container(
+      block,
+      [Container(child_block, _) as child, ..rest],
+    ) -> {
+      case eval_block(child_block, state) {
+        Open(..) as state -> {
+          let #(child, dirty) = parse(child, state)
+          #(Container(block, [child, ..rest]), dirty)
+        }
+        Closed(..) as state -> {
+          let #(child, dirty) = parse(child, state)
+          case dirty {
+            Dirty -> #(Container(block, [child, ..rest]), Dirty)
+            Clean -> #(
+              Container(block, maybe_add([child, ..rest], create_block(text))),
+              Dirty,
+            )
+          }
+        }
       }
     }
-    Container(value, []), Open(blocks) ->
-      case parse_container(value, blocks) {
-        Closing(..) -> #([try_new_node(blocks), node], True)
-        Open(..) -> #([Container(value, [try_new_node(blocks)])], True)
+    Closed(..), Container(_, []) as node -> {
+      #(node, Clean)
+    }
+    Closed(..), Container(block, [Container(..) as child, ..rest]) -> {
+      let #(child, dirty) = parse(child, state)
+      #(Container(block, [child, ..rest]), dirty)
+    }
+    _ as state, Container(block, [Leaf(child_block) as child, ..rest]) as node -> {
+      let #(child_block, append_dirty) = append(child_block, state.text)
+      case state, append_dirty {
+        Open(text), Clean ->
+          case create_block(text) {
+            None -> #(node, Clean)
+            Some(new_child) -> #(
+              Container(block, [new_child, child, ..rest]),
+              Dirty,
+            )
+          }
+        Closed(..), Clean -> #(node, Clean)
+        _, Dirty -> #(Container(block, [Leaf(child_block), ..rest]), Dirty)
       }
-    Container(_, [child, ..]), Closing(..) -> parse(child, state)
-    Container(_, []), Closing(..) -> #([node], False)
-    Leaf(value), _ ->
-      case try_appending(value, state.blocks) {
-        None -> #([node], False)
-        Some(new_node) -> #([Leaf(new_node)], True)
-      }
+    }
+    _, Leaf(..) ->
+      panic as "if this node is leaf something has gone horribly wrong"
   }
 }
 
 fn parse_line(node: BlockNode, line: String) -> BlockNode {
-  let assert #([result], _) = parse(node, Open(line))
-  result
+  parse(node, Open(line)).0
 }
 
 fn block_parse(input: String) -> BlockNode {
@@ -149,14 +189,12 @@ fn block_parse(input: String) -> BlockNode {
 pub fn main() {
   // let assert Ok(line) = erlang.get_line("")
   let input =
-    "
-  
-# This is a heading
+    string.trim(
+      "
 
-This is a paragraph
-Continued
+",
+    )
 
-"
   input
   |> block_parse()
   |> ast.repr()
