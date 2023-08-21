@@ -36,16 +36,6 @@ type Dirtiness {
   Clean
 }
 
-fn trim_up_to_3(text: String) -> String {
-  case text {
-    "    " <> _ | " \t" <> _ | "  \t" <> _ | "   \t" <> _ -> text
-    "   " <> rest -> rest
-    "  " <> rest -> rest
-    " " <> rest -> rest
-    _ -> text
-  }
-}
-
 fn maybe_add(list: List(a), maybe_item: Option(a)) -> List(a) {
   case maybe_item {
     Some(item) -> [item, ..list]
@@ -60,8 +50,50 @@ fn maybe_create(maybe_item: Option(a)) -> List(a) {
   }
 }
 
+fn early_out_unwrap(result: Result(a, b), out: c, rest: fn(a) -> c) -> c {
+  case result {
+    Ok(value) -> rest(value)
+    Error(..) -> out
+  }
+}
+
+fn trim_up_to_3(text: String) -> String {
+  case text {
+    "    " <> _ | " \t" <> _ | "  \t" <> _ | "   \t" <> _ -> text
+    "   " <> rest -> rest
+    "  " <> rest -> rest
+    " " <> rest -> rest
+    _ -> text
+  }
+}
+
 fn format_heading(level: Int, text: String) -> BlockNode {
-  Leaf(Heading(level, text))
+  let trimmed = string.trim_left(text)
+  let split_suffix =
+    trimmed
+    |> string.reverse()
+    |> string.split_once(" ")
+
+  use #(suffix, reversed_name) <- early_out_unwrap(
+    split_suffix,
+    Leaf(Heading(level, trimmed)),
+  )
+
+  let hash_only_suffix =
+    suffix
+    |> string.replace("#", "")
+    |> string.is_empty()
+
+  case hash_only_suffix {
+    False -> Leaf(Heading(level, trimmed))
+    True ->
+      Leaf(Heading(
+        level,
+        reversed_name
+        |> string.reverse()
+        |> string.trim_right(),
+      ))
+  }
 }
 
 fn create_block(text: String) -> Option(BlockNode) {
@@ -71,6 +103,7 @@ fn create_block(text: String) -> Option(BlockNode) {
     "> " <> rest | ">\t" <> rest ->
       Some(Container(BlockQuote, maybe_create(create_block(rest))))
     ">" <> rest -> Some(Container(BlockQuote, maybe_create(create_block(rest))))
+    "#" -> Some(Leaf(Heading(1, "")))
     "# " <> rest | "#\t" <> rest -> Some(format_heading(1, rest))
     "## " <> rest | "##\t" <> rest -> Some(format_heading(2, rest))
     "### " <> rest | "###\t" <> rest -> Some(format_heading(3, rest))
@@ -208,8 +241,9 @@ pub fn main() {
   let input =
     string.trim(
       "
->>> b
-> a
+## 
+#
+### ###
 ",
     )
 
