@@ -3,7 +3,7 @@ import gleam/string
 import canopy/ast
 import canopy/block
 
-pub fn to_html(input: String) -> String {
+pub fn to_html(_input: String) -> String {
   "todo"
 }
 
