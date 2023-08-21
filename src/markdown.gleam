@@ -61,9 +61,7 @@ fn maybe_create(maybe_item: Option(a)) -> List(a) {
 }
 
 fn format_heading(level: Int, text: String) -> BlockNode {
-  todo
-
-  Leaf(Heading(level, trimmed))
+  Leaf(Heading(level, text))
 }
 
 fn create_block(text: String) -> Option(BlockNode) {
@@ -129,20 +127,22 @@ fn parse(node: BlockNode, state: BlockParserState) -> #(BlockNode, Dirtiness) {
   io.println("")
 
   case state, node {
+    // open, container with no children
     Open(text), Container(block, []) -> {
       #(Container(block, maybe_create(create_block(text))), Dirty)
     }
+    // open, container with children
     Open(text) as state, Container(
       block,
       [Container(child_block, _) as child, ..rest],
     ) -> {
       case eval_block(child_block, state) {
-        Open(..) as state -> {
-          let #(child, dirty) = parse(child, state)
+        Open(..) as new_state -> {
+          let #(child, dirty) = parse(child, new_state)
           #(Container(block, [child, ..rest]), dirty)
         }
-        Closed(..) as state -> {
-          let #(child, dirty) = parse(child, state)
+        Closed(..) as new_state -> {
+          let #(child, dirty) = parse(child, new_state)
           case dirty {
             Dirty -> #(Container(block, [child, ..rest]), Dirty)
             Clean -> #(
@@ -153,17 +153,20 @@ fn parse(node: BlockNode, state: BlockParserState) -> #(BlockNode, Dirtiness) {
         }
       }
     }
+    // closed, container with no children
     Closed(..), Container(_, []) as node -> {
       #(node, Clean)
     }
+    // closed, container with children
     Closed(..), Container(block, [Container(..) as child, ..rest]) -> {
       let #(child, dirty) = parse(child, state)
       #(Container(block, [child, ..rest]), dirty)
     }
-    _ as state, Container(block, [Leaf(child_block) as child, ..rest]) as node -> {
-      let #(child_block, append_dirty) = append(child_block, state.text)
-      case state, append_dirty {
-        Open(text), Clean ->
+    // open, container with leaf child
+    Open(text), Container(block, [Leaf(child_block) as child, ..rest]) as node -> {
+      let #(child_block, append_dirty) = append(child_block, text)
+      case append_dirty {
+        Clean ->
           case create_block(text) {
             None -> #(node, Clean)
             Some(new_child) -> #(
@@ -171,10 +174,18 @@ fn parse(node: BlockNode, state: BlockParserState) -> #(BlockNode, Dirtiness) {
               Dirty,
             )
           }
-        Closed(..), Clean -> #(node, Clean)
-        _, Dirty -> #(Container(block, [Leaf(child_block), ..rest]), Dirty)
+        Dirty -> #(Container(block, [Leaf(child_block), ..rest]), Dirty)
       }
     }
+    // closed, container with leaf child
+    Closed(text), Container(block, [Leaf(child_block), ..rest]) as node -> {
+      let #(child_block, append_dirty) = append(child_block, text)
+      case append_dirty {
+        Clean -> #(node, Clean)
+        Dirty -> #(Container(block, [Leaf(child_block), ..rest]), Dirty)
+      }
+    }
+    // unreachable
     _, Leaf(..) ->
       panic as "if this node is leaf something has gone horribly wrong"
   }
@@ -197,7 +208,8 @@ pub fn main() {
   let input =
     string.trim(
       "
-# foo#
+>>> b
+> a
 ",
     )
 
