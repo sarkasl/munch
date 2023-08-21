@@ -8,7 +8,6 @@ pub fn to_html(_input: String) -> String {
 }
 
 pub fn main() {
-  // let assert Ok(line) = erlang.get_line("")
   let input =
     string.trim(
       "
