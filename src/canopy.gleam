@@ -1,7 +1,7 @@
 import gleam/io
 import gleam/string
-import ast
-import block
+import canopy/ast
+import canopy/block
 
 pub fn main() {
   // let assert Ok(line) = erlang.get_line("")

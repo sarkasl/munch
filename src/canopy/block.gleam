@@ -3,7 +3,9 @@ import gleam/string
 import gleam/string_builder.{StringBuilder}
 import gleam/option.{None, Option, Some}
 import gleam/list
-import ast.{Container, Leaf, SplitNode, maybe_add_child, maybe_create_child}
+import canopy/ast.{
+  Container, Leaf, SplitNode, maybe_add_child, maybe_create_child,
+}
 
 pub type BlockContainer {
   Document
