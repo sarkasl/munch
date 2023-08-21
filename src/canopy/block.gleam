@@ -1,4 +1,3 @@
-import gleam/io
 import gleam/string
 import gleam/string_builder.{StringBuilder}
 import gleam/option.{None, Option, Some}
@@ -147,13 +146,6 @@ fn rec_parse(
   node: BlockNode,
   state: BlockParserState,
 ) -> #(BlockNode, Dirtiness) {
-  io.debug(state)
-  node
-  |> ast.invert_split()
-  |> ast.repr_split()
-  |> io.println()
-  io.println("")
-
   case state, node {
     // open, container with no children
     Open(text), Container(block, []) -> {
