@@ -1,7 +1,7 @@
 import gleam/io
 import gleam/string
 import canopy/ast
-import canopy/block
+import canopy/internal/block
 
 //.{BlockNode}
 
