@@ -3,15 +3,9 @@ import gleam/string
 import canopy/ast
 import canopy/block
 
-pub fn to_html(_input: String) -> String {
-  "todo"
-}
+//.{BlockNode}
 
-pub fn parse(input: String) -> String {
-  input
-  |> block.parse()
-  |> ast.repr_split()
-}
+// fn parse_inline(block_tree: BlockNode)
 
 pub fn main() {
   let input =
@@ -27,4 +21,14 @@ pub fn main() {
   |> block.parse()
   |> ast.repr_split()
   |> io.println()
+}
+
+pub fn to_html(_input: String) -> String {
+  "todo"
+}
+
+pub fn parse(input: String) -> String {
+  input
+  |> block.parse()
+  |> ast.repr_split()
 }

@@ -77,14 +77,14 @@ pub fn invert_split(ast: SplitNode(a, b)) -> SplitNode(a, b) {
   }
 }
 
-pub fn maybe_add_child(list: List(a), maybe_item: Option(a)) -> List(a) {
+pub fn maybe_add(list: List(a), maybe_item: Option(a)) -> List(a) {
   case maybe_item {
     Some(item) -> [item, ..list]
     None -> list
   }
 }
 
-pub fn maybe_create_child(maybe_item: Option(a)) -> List(a) {
+pub fn maybe_create(maybe_item: Option(a)) -> List(a) {
   case maybe_item {
     Some(item) -> [item]
     None -> []

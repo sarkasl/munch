@@ -2,9 +2,9 @@ import gleam/string
 import gleam/string_builder.{StringBuilder}
 import gleam/option.{None, Option, Some}
 import gleam/list
-import canopy/ast.{
-  Container, Leaf, SplitNode, maybe_add_child, maybe_create_child,
-}
+import gleam/regex.{Regex}
+import canopy/ast.{Container, Leaf, SplitNode, maybe_add, maybe_create}
+import nibble/lexer.{Error}
 
 pub type BlockContainer {
   Document
@@ -35,6 +35,56 @@ type BlockParserState {
 type Dirtiness {
   Dirty
   Clean
+}
+
+type ReParser {
+  ReParser(
+    re: Regex,
+    parser: fn(List(Option(String)), fn(String) -> Option(BlockNode)) ->
+      Option(BlockNode),
+  )
+}
+
+type Re {
+  Re(empty: ReParser, quote: ReParser)
+}
+
+fn parse_empty(
+  _captures: List(Option(String)),
+  _continue: fn(String) -> Option(BlockNode),
+) -> Option(BlockNode) {
+  None
+}
+
+fn parse_block_quote(
+  captures: List(Option(String)),
+  continue: fn(String) -> Option(BlockNode),
+) -> Option(BlockNode) {
+  case captures {
+    [Some(rest)] -> Some(Container(BlockQuote, maybe_create(continue(rest))))
+    [None] -> Some(Container(BlockQuote, []))
+  }
+}
+
+fn parse_heading(
+  captures: List(Option(String)),
+  continue: fn(String) -> Option(BlockNode),
+) -> Option(BlockNode) {
+  todo
+}
+
+fn re_get(expression: String) -> Regex {
+  case regex.from_string(expression) {
+    Ok(value) -> value
+    Error(..) -> panic
+  }
+}
+
+fn get_regex() -> Re {
+  Re(
+    empty: ReParser(re_get("^$"), parse_empty),
+    quote: ReParser(re_get("^ {0,3}>[ \t]?(.*)"), parse_block_quote),
+  )
 }
 
 fn trim_up_to_3(text: String) -> String {
@@ -82,10 +132,10 @@ fn create_block(text: String) -> Option(BlockNode) {
     "" -> None
     // block quotes
     "> " <> rest | ">\t" <> rest -> {
-      Some(Container(BlockQuote, maybe_create_child(create_block(rest))))
+      Some(Container(BlockQuote, maybe_create(create_block(rest))))
     }
     ">" <> rest -> {
-      Some(Container(BlockQuote, maybe_create_child(create_block(rest))))
+      Some(Container(BlockQuote, maybe_create(create_block(rest))))
     }
     // headings
     "#" -> Some(Leaf(Heading(1, "")))
@@ -149,7 +199,7 @@ fn rec_parse(
   case state, node {
     // open, container with no children
     Open(text), Container(block, []) -> {
-      #(Container(block, maybe_create_child(create_block(text))), Dirty)
+      #(Container(block, maybe_create(create_block(text))), Dirty)
     }
     // open, container with children
     Open(text) as state, Container(
@@ -166,10 +216,7 @@ fn rec_parse(
           case dirty {
             Dirty -> #(Container(block, [child, ..rest]), Dirty)
             Clean -> #(
-              Container(
-                block,
-                maybe_add_child([child, ..rest], create_block(text)),
-              ),
+              Container(block, maybe_add([child, ..rest], create_block(text))),
               Dirty,
             )
           }
@@ -181,9 +228,12 @@ fn rec_parse(
       #(node, Clean)
     }
     // closed, container with children
-    Closed(..), Container(block, [Container(..) as child, ..rest]) -> {
+    Closed(..), Container(block, [Container(..) as child, ..rest]) as node -> {
       let #(child, dirty) = rec_parse(child, state)
-      #(Container(block, [child, ..rest]), dirty)
+      case dirty {
+        Clean -> #(node, Clean)
+        Dirty -> #(Container(block, [child, ..rest]), Dirty)
+      }
     }
     // open, container with leaf child
     Open(text), Container(block, [Leaf(child_block) as child, ..rest]) as node -> {
@@ -219,6 +269,8 @@ fn parse_line(node: BlockNode, line: String) -> BlockNode {
 }
 
 pub fn parse(input: String) -> BlockNode {
+  let _re = get_regex()
+
   input
   |> string.split("\n")
   |> list.map(string.trim_right)
