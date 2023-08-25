@@ -1,9 +1,9 @@
-# markdown
+# Canopy
 
-<!-- [![Package Version](https://img.shields.io/hexpm/v/markdown)](https://hex.pm/packages/markdown) -->
-<!-- [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/markdown/) -->
+<!-- [![Package Version](https://img.shields.io/hexpm/v/canopy)](https://hex.pm/packages/canopy) -->
+<!-- [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/canopy/) -->
 
-Markdown parser in gleam
+Markdown parser in pure Gleam.
 
 <!-- ## Quick start
 
@@ -18,7 +18,7 @@ gleam shell # Run an Erlang shell
 If available on Hex this package can be added to your Gleam project:
 
 ```sh
-gleam add markdown
+gleam add canopy
 ```
 
-and its documentation can be found at <https://hexdocs.pm/markdown>. -->
+and its documentation can be found at <https://hexdocs.pm/canopy>. -->
