@@ -29,8 +29,8 @@ fn append_container(
     block_ast.Document -> #(container, text, Open)
     block_ast.BlockQuote -> {
       case parse_block_quote_cont(text) {
-        Ok(text) -> #(container, text, Open)
-        Error(..) -> #(container, text, Closed)
+        Some(text) -> #(container, text, Open)
+        None -> #(container, text, Closed)
       }
     }
   }
@@ -41,8 +41,8 @@ fn append_leaf(leaf: BlockLeaf, text: TokenList) -> #(BlockLeaf, Dirtiness) {
     block_ast.Heading(..) -> #(leaf, Clean)
     block_ast.Paragraph(paragraph_text) -> {
       case parse_paragraph_cont(paragraph_text, text) {
-        Ok(paragraph) -> #(paragraph, Dirty)
-        Error(..) -> #(leaf, Clean)
+        Some(paragraph) -> #(paragraph, Dirty)
+        None -> #(leaf, Clean)
       }
     }
   }

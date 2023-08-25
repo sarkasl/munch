@@ -2,7 +2,7 @@ import gleam/string
 import gleam/option.{None, Option, Some}
 import gleam/string_builder.{StringBuilder}
 import gleam/list
-import nibble.{do, return}
+import nibble
 import nibble/lexer
 import canopy/internals/block_ast.{BlockContainer, BlockLeaf, BlockNode}
 import canopy/ast.{Container, Leaf, maybe_add, maybe_create}
@@ -27,6 +27,11 @@ fn get_whitespace_length(whitespace: String) -> Int {
   whitespace
   |> string.replace("\t", "    ")
   |> string.length()
+}
+
+fn drop_until(in list: List(a), until item: a) -> List(a) {
+  use list_item <- list.drop_while(list)
+  list_item != item
 }
 
 fn lexers(_) {
@@ -118,17 +123,38 @@ pub fn lex(line: String) -> Result(TokenList, lexer.Error) {
   lexer.run_advanced(line, NormalMode, lexers)
 }
 
+fn do_parse_nodes() -> nibble.Parser(BlockNode, Token, Nil) {
+  todo
+}
+
 pub fn parse_nodes(text: TokenList) -> Option(BlockNode) {
+  case nibble.run(text, do_parse_nodes()) {
+    Ok(nodes) -> Some(nodes)
+    Error(..) -> None
+  }
+}
+
+fn do_parse_paragraph_cont(
+  paragraph_text: StringBuilder,
+) -> nibble.Parser(BlockLeaf, Token, Nil) {
   todo
 }
 
 pub fn parse_paragraph_cont(
   paragraph_text: StringBuilder,
   text: TokenList,
-) -> Result(BlockLeaf, Nil) {
+) -> Option(BlockLeaf) {
+  nibble.run(text, do_parse_paragraph_cont(paragraph_text))
+  |> option.from_result()
+}
+
+fn do_parse_block_quote_cont() -> nibble.Parser(lexer.Token(Token), Token, Nil) {
   todo
 }
 
-pub fn parse_block_quote_cont(text: TokenList) -> Result(TokenList, Nil) {
-  todo
+pub fn parse_block_quote_cont(text: TokenList) -> Option(TokenList) {
+  case nibble.run(text, do_parse_block_quote_cont()) {
+    Ok(token) -> Some(drop_until(text, token))
+    Error(..) -> None
+  }
 }
