@@ -1,12 +1,11 @@
 import gleam/string
-import gleam/bit_string
-import gleam/string_builder.{StringBuilder}
-import gleam/option.{None, Option, Some}
+import gleam/option.{None, Some}
 import gleam/list
-import gleam/regex.{Regex}
-import canopy/ast.{Container, Leaf, SplitNode, maybe_add, maybe_create}
+import canopy/ast.{Container, Leaf, maybe_add, maybe_create}
 import canopy/internals/block_ast.{BlockContainer, BlockLeaf, BlockNode}
-import canopy/internals/block_parser.{TokenList}
+import canopy/internals/block_parser.{
+  TokenList, parse_block_quote_cont, parse_nodes, parse_paragraph_cont,
+}
 
 type Openness {
   Open
@@ -26,15 +25,27 @@ fn append_container(
   container: BlockContainer,
   text: TokenList,
 ) -> #(BlockContainer, TokenList, Openness) {
-  todo
+  case container {
+    block_ast.Document -> #(container, text, Open)
+    block_ast.BlockQuote -> {
+      case parse_block_quote_cont(text) {
+        Ok(text) -> #(container, text, Open)
+        Error(..) -> #(container, text, Closed)
+      }
+    }
+  }
 }
 
 fn append_leaf(leaf: BlockLeaf, text: TokenList) -> #(BlockLeaf, Dirtiness) {
-  todo
-}
-
-fn create_blocks(text: TokenList) -> Option(BlockNode) {
-  todo
+  case leaf {
+    block_ast.Heading(..) -> #(leaf, Clean)
+    block_ast.Paragraph(paragraph_text) -> {
+      case parse_paragraph_cont(paragraph_text, text) {
+        Ok(paragraph) -> #(paragraph, Dirty)
+        Error(..) -> #(leaf, Clean)
+      }
+    }
+  }
 }
 
 fn rec_parse(
@@ -45,7 +56,7 @@ fn rec_parse(
     Container(block, children) ->
       case state.open, children {
         Open, [] -> #(
-          Container(block, maybe_create(create_blocks(state.text))),
+          Container(block, maybe_create(parse_nodes(state.text))),
           BlockParserState(..state, dirty: Dirty),
         )
 
@@ -58,7 +69,7 @@ fn rec_parse(
           let #(child, state) = rec_parse(child, state)
           case open, state.dirty {
             Closed, Clean -> #(
-              Container(block, maybe_add([child, ..rest], create_blocks(text))),
+              Container(block, maybe_add([child, ..rest], parse_nodes(text))),
               BlockParserState(..state, dirty: Dirty),
             )
             Open, Clean -> #(node, state)
@@ -80,7 +91,7 @@ fn rec_parse(
           let #(child_block, dirty) = append_leaf(child_block, state.text)
           case dirty {
             Clean ->
-              case create_blocks(state.text) {
+              case parse_nodes(state.text) {
                 None -> #(node, state)
                 Some(new_child) -> #(
                   Container(block, [new_child, child, ..rest]),

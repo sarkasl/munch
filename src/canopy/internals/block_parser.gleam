@@ -1,9 +1,10 @@
 import gleam/string
 import gleam/option.{None, Option, Some}
+import gleam/string_builder.{StringBuilder}
+import gleam/list
 import nibble.{do, return}
 import nibble/lexer
-import gleam/list
-import canopy/internals/block_ast
+import canopy/internals/block_ast.{BlockContainer, BlockLeaf, BlockNode}
 import canopy/ast.{Container, Leaf, maybe_add, maybe_create}
 
 pub type Token {
@@ -115,4 +116,19 @@ fn lexers(_) {
 pub fn lex(line: String) -> Result(TokenList, lexer.Error) {
   let lexers = lexer.advanced(lexers)
   lexer.run_advanced(line, NormalMode, lexers)
+}
+
+pub fn parse_nodes(text: TokenList) -> Option(BlockNode) {
+  todo
+}
+
+pub fn parse_paragraph_cont(
+  paragraph_text: StringBuilder,
+  text: TokenList,
+) -> Result(BlockLeaf, Nil) {
+  todo
+}
+
+pub fn parse_block_quote_cont(text: TokenList) -> Result(TokenList, Nil) {
+  todo
 }
