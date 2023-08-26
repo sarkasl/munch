@@ -6,9 +6,11 @@ licences = ["Apache-2.0"]
 repository = { type = "github", user = "sarkasl", repo = "canopy" }
 # links = [{ title = "Website", href = "https://gleam.run" }]
 
+# todo remove nakai
 [dependencies]
 gleam_stdlib = "~> 0.30"
 nibble = "1.0.0-rc.3"
+nakai = "~> 0.8"
 
 [dev-dependencies]
 gleeunit = "~> 0.10"
