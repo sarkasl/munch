@@ -2,7 +2,6 @@ import gleam/string
 import gleam/list
 import gleam/io
 import gleam/option.{None, Option, Some}
-import gleam/int
 
 pub type Node(a) {
   Node(value: a, children: List(Node(a)))
