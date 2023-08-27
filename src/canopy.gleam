@@ -5,42 +5,73 @@ import gleam/io
 import gleam/string_builder.{StringBuilder}
 import nibble
 import nibble/lexer
-import scratchpad
+import canopy/tree
 
-pub fn parse(markdown: String) -> BlockNode {
+pub fn parse(markdown: String) -> tree.Node(MarkdownNode) {
   markdown
   |> string.replace("\r\n", "\n")
   |> string.split("\n")
   |> collapse_blank_lines()
   |> block_parse()
+  todo
 }
 
 pub fn main() {
-  //   let input =
-  //     string.trim(
-  //       "
-  // ## 
-  // #
-  // ### ###
-  // ",
-  //     )
+  let input =
+    string.trim(
+      "
+  ## 
+  #
+  ### ###
+  ",
+    )
 
-  //   input
-  //   |> parse()
-  //   |> repr_split()
-  //   |> io.println()
-  scratchpad.main()
+  input
+  |> string.replace("\r\n", "\n")
+  |> string.split("\n")
+  |> collapse_blank_lines()
+  |> block_parse()
+  |> block_pretty_print()
 }
 
 //############################################################################//
-//                               Prepare input                                //
+//                                   Nodes                                    //
 //############################################################################//
 
-fn collapse_blank_lines(lines: List(String)) -> List(String) {
-  lines
-  |> list.fold([], do_collapse_blank_lines)
-  |> list.reverse()
+pub type MarkdownElement {
+  Document
+  ThematicBreak
+  Heading(level: Int)
+  SetextHeading
+  CodeBlock(info: String, text: String)
+  HtmlBlock(text: String)
+  Paragraph
+  BlockQuote
+  Table
+  TableHeader
+  TableRow
+  UnorderedList(tight: Bool)
+  OrderedList(start: Int, tight: Bool)
+  ListItem
+  TaskList(tight: Bool)
+  TaskItem(checked: Bool)
+  Text(text: String)
+  CodeSpan(text: String)
+  Emphasis
+  StrongEmphasis
+  StrikeThrough
+  Link
+  Image
+  Softbreak
+  Hardbreak
 }
+
+pub type MarkdownNode =
+  tree.Node(MarkdownElement)
+
+//############################################################################//
+//                               Prepare Input                                //
+//############################################################################//
 
 fn do_collapse_blank_lines(acc: List(String), line: String) -> List(String) {
   case string.length(string.trim_right(line)), acc {
@@ -50,70 +81,59 @@ fn do_collapse_blank_lines(acc: List(String), line: String) -> List(String) {
   }
 }
 
+fn collapse_blank_lines(lines: List(String)) -> List(String) {
+  lines
+  |> list.fold([], do_collapse_blank_lines)
+  |> list.reverse()
+}
+
 //############################################################################//
-//                                    Ast                                     //
+//                                 Block Ast                                  //
 //############################################################################//
 
-pub type Node(a) {
-  Node(value: a, children: List(Node(a)))
+type BlockContainer {
+  DocumentBlock
+  BlockQuoteBlock
 }
 
-fn rec_repr(node: Node(a), indent: String) -> String {
-  case node {
-    Node(value, []) -> indent <> string.inspect(value)
-    Node(value, children) -> {
-      let children_indent = indent <> "  "
-      children
-      |> list.map(rec_repr(_, children_indent))
-      |> list.prepend(indent <> string.inspect(value))
-      |> string.join("\n")
-    }
-  }
+// BulletListBlock(bullet: String, justify: Int)
+// OrderedListBlock(start: Int, delimeter: String, justify: Int)
+// ListItemBlock
+
+type BlockLeaf {
+  ParagraphBlock(text: StringBuilder)
+  HeadingBlock(level: Int, text: String)
 }
 
-pub fn repr(node: Node(a)) -> String {
-  rec_repr(node, "")
+// IndentCodeBlock(text: StringBuilder)
+// FencedCodeBlock(info: String, text: StringBuilder)
+// ThematicBreakB
+
+type BlockNode {
+  Container(value: BlockContainer, children: List(BlockNode))
+  Leaf(value: BlockLeaf)
 }
 
-pub fn invert(ast: Node(a)) -> Node(a) {
-  case ast {
-    Node(_, []) -> ast
-    Node(value, children) ->
-      Node(
-        value: value,
-        children: {
-          children
-          |> list.reverse()
-          |> list.map(invert)
-        },
-      )
-  }
-}
-
-pub type SplitNode(container, leaf) {
-  Container(value: container, children: List(SplitNode(container, leaf)))
-  Leaf(value: leaf)
-}
-
-fn rec_repr_split(node: SplitNode(a, b), indent: String) -> String {
+fn do_block_pretty_print(node: BlockNode, indent: String) -> String {
   case node {
     Leaf(value) -> indent <> string.inspect(value)
     Container(value, []) -> indent <> string.inspect(value)
     Container(value, children) -> {
       let children_indent = indent <> "  "
       children
-      |> list.map(rec_repr_split(_, children_indent))
+      |> list.map(do_block_pretty_print(_, children_indent))
       |> list.prepend(indent <> string.inspect(value))
       |> string.join("\n")
     }
   }
 }
 
-pub fn repr_split(node: SplitNode(a, b)) -> String {
-  rec_repr_split(node, "")
+fn block_pretty_print(node: BlockNode) -> Nil {
+  do_block_pretty_print(node, "")
+  |> io.println()
 }
 
-pub fn invert_split(ast: SplitNode(a, b)) -> SplitNode(a, b) {
+fn block_invert(ast: BlockNode) -> BlockNode {
   case ast {
     Leaf(_) -> ast
     Container(_, []) -> ast
@@ -123,20 +143,20 @@ pub fn invert_split(ast: SplitNode(a, b)) -> SplitNode(a, b) {
         children: {
           children
           |> list.reverse()
-          |> list.map(invert_split)
+          |> list.map(block_invert)
         },
       )
   }
 }
 
-pub fn maybe_add(list: List(a), maybe_item: Option(a)) -> List(a) {
+fn maybe_add(list: List(a), maybe_item: Option(a)) -> List(a) {
   case maybe_item {
     Some(item) -> [item, ..list]
     None -> list
   }
 }
 
-pub fn maybe_create(maybe_item: Option(a)) -> List(a) {
+fn maybe_create(maybe_item: Option(a)) -> List(a) {
   case maybe_item {
     Some(item) -> [item]
     None -> []
@@ -144,29 +164,8 @@ pub fn maybe_create(maybe_item: Option(a)) -> List(a) {
 }
 
 //############################################################################//
-//                                 Block ast                                  //
+//                               Block Parsing                                //
 //############################################################################//
-
-pub type BlockContainer {
-  Document
-  BlockQuote
-}
-
-// BulletList(bullet: String, justify: Int)
-// OrderedList(start: Int, delimeter: String, justify: Int)
-// ListItem
-
-pub type BlockLeaf {
-  Paragraph(text: StringBuilder)
-  Heading(level: Int, text: String)
-}
-
-// IndentCode(text: StringBuilder)
-// FencedCode(info: String, text: StringBuilder)
-// ThematicBreak
-
-pub type BlockNode =
-  SplitNode(BlockContainer, BlockLeaf)
 
 type Openness {
   Open
@@ -179,16 +178,34 @@ type Dirtiness {
 }
 
 type BlockParserState {
-  BlockParserState(text: BlockTokenList, open: Openness, dirty: Dirtiness)
+  BlockParserState(text: List(BlockToken), open: Openness, dirty: Dirtiness)
+}
+
+fn block_parse(input: List(String)) -> BlockNode {
+  input
+  |> list.fold(Container(DocumentBlock, []), parse_line)
+  |> block_invert()
+}
+
+fn parse_line(node: BlockNode, line: String) -> BlockNode {
+  let assert Ok(tokens) = lex(line)
+  do_block_parse(node, BlockParserState(tokens, Open, Clean)).0
+}
+
+fn parse_nodes(text: List(BlockToken)) -> Option(BlockNode) {
+  case nibble.run(text, do_parse_nodes()) {
+    Ok(nodes) -> Some(nodes)
+    Error(..) -> None
+  }
 }
 
 fn append_container(
   container: BlockContainer,
-  text: BlockTokenList,
-) -> #(BlockContainer, BlockTokenList, Openness) {
+  text: List(BlockToken),
+) -> #(BlockContainer, List(BlockToken), Openness) {
   case container {
-    Document -> #(container, text, Open)
-    BlockQuote -> {
+    DocumentBlock -> #(container, text, Open)
+    BlockQuoteBlock -> {
       case parse_block_quote_cont(text) {
         Some(text) -> #(container, text, Open)
         None -> #(container, text, Closed)
@@ -197,19 +214,22 @@ fn append_container(
   }
 }
 
-fn append_leaf(leaf: BlockLeaf, text: BlockTokenList) -> #(BlockLeaf, Dirtiness) {
+fn append_leaf(
+  leaf: BlockLeaf,
+  text: List(BlockToken),
+) -> #(BlockLeaf, Dirtiness) {
   case leaf {
-    Heading(..) -> #(leaf, Clean)
-    Paragraph(paragraph_text) -> {
-      case parse_paragraph_cont(paragraph_text, text) {
-        Some(paragraph) -> #(paragraph, Dirty)
-        None -> #(leaf, Clean)
+    HeadingBlock(..) -> #(leaf, Clean)
+    ParagraphBlock(paragraph_text) -> {
+      case nibble.run(text, do_parse_paragraph_cont(paragraph_text)) {
+        Ok(paragraph) -> #(paragraph, Dirty)
+        Error(..) -> #(leaf, Clean)
       }
     }
   }
 }
 
-fn rec_parse(
+fn do_block_parse(
   node: BlockNode,
   state: BlockParserState,
 ) -> #(BlockNode, BlockParserState) {
@@ -227,7 +247,7 @@ fn rec_parse(
           let child = Container(child_block, child_children)
           let state = BlockParserState(text, open, Clean)
 
-          let #(child, state) = rec_parse(child, state)
+          let #(child, state) = do_block_parse(child, state)
           case open, state.dirty {
             Closed, Clean -> #(
               Container(block, maybe_add([child, ..rest], parse_nodes(text))),
@@ -241,7 +261,7 @@ fn rec_parse(
         Closed, [] -> #(node, state)
 
         Closed, [Container(..) as child, ..rest] -> {
-          let #(child, state) = rec_parse(child, state)
+          let #(child, state) = do_block_parse(child, state)
           case state.dirty {
             Clean -> #(node, state)
             Dirty -> #(Container(block, [child, ..rest]), state)
@@ -283,46 +303,29 @@ fn rec_parse(
   }
 }
 
-fn parse_line(node: BlockNode, line: String) -> BlockNode {
-  let assert Ok(tokens) = lex(line)
-  rec_parse(node, BlockParserState(tokens, Open, Clean)).0
-}
-
-pub fn block_parse(input: List(String)) -> BlockNode {
-  input
-  |> list.fold(Container(Document, []), parse_line)
-  |> invert_split()
-}
-
 //############################################################################//
-//                               Block parsing                                //
+//                             Block Text Parsing                             //
 //############################################################################//
 
-pub type BlockToken {
-  QuoteT
-  HeadingT(Int)
-  TextT(String)
-  WhitespaceT(Int)
-  NewlineT
+type BlockT {
+  QuoteToken
+  HeadingToken(Int)
+  TextToken(String)
+  WhitespaceToken(Int)
+  NewlineToken
 }
 
-pub type BlockTokenList =
-  List(lexer.Token(BlockToken))
+type BlockToken =
+  lexer.Token(BlockT)
 
 type MatcherMode {
   NormalMode
   WhitespaceMode(Int)
 }
 
-fn get_whitespace_length(whitespace: String) -> Int {
-  whitespace
-  |> string.replace("\t", "    ")
-  |> string.length()
-}
-
-fn drop_until(in list: List(a), until item: a) -> List(a) {
-  use list_item <- list.drop_while(list)
-  list_item != item
+fn lex(line: String) -> Result(List(BlockToken), lexer.Error) {
+  let lexers = lexer.advanced(lexers)
+  lexer.run_advanced(line, NormalMode, lexers)
 }
 
 fn lexers(_) {
@@ -336,7 +339,7 @@ fn lexers(_) {
           Ok("\t"), " " | Ok("\t"), "\t" -> lexer.Skip
           Ok(" "), _ | Ok("\t"), _ ->
             lexer.Keep(
-              WhitespaceT(get_whitespace_length(lexeme) + adjustment),
+              WhitespaceToken(get_whitespace_length(lexeme) + adjustment),
               NormalMode,
             )
           _, _ -> lexer.NoMatch
@@ -349,9 +352,9 @@ fn lexers(_) {
     use _, lexeme, lookahead <- lexer.custom
 
     case lexeme, lookahead {
-      ">", " " -> lexer.Keep(QuoteT, WhitespaceMode(-1))
-      ">", "\t" -> lexer.Keep(QuoteT, WhitespaceMode(-2))
-      ">", _ -> lexer.Keep(QuoteT, NormalMode)
+      ">", " " -> lexer.Keep(QuoteToken, WhitespaceMode(-1))
+      ">", "\t" -> lexer.Keep(QuoteToken, WhitespaceMode(-2))
+      ">", _ -> lexer.Keep(QuoteToken, NormalMode)
       _, _ -> lexer.NoMatch
     }
   }
@@ -361,10 +364,10 @@ fn lexers(_) {
 
     case string.last(lexeme), lookahead {
       Ok("#"), " " ->
-        lexer.Keep(HeadingT(string.length(lexeme)), WhitespaceMode(-1))
+        lexer.Keep(HeadingToken(string.length(lexeme)), WhitespaceMode(-1))
       Ok("#"), "\t" ->
-        lexer.Keep(HeadingT(string.length(lexeme)), WhitespaceMode(-2))
-      Ok("#"), "" -> lexer.Keep(HeadingT(string.length(lexeme)), NormalMode)
+        lexer.Keep(HeadingToken(string.length(lexeme)), WhitespaceMode(-2))
+      Ok("#"), "" -> lexer.Keep(HeadingToken(string.length(lexeme)), NormalMode)
       Ok("#"), "#" -> lexer.Skip
       _, _ -> lexer.NoMatch
     }
@@ -384,8 +387,8 @@ fn lexers(_) {
     use _, lexeme, lookahead <- lexer.custom
 
     case lexeme, lookahead {
-      "\n", " " | "\n", "\t" -> lexer.Keep(NewlineT, WhitespaceMode(0))
-      "\n", _ -> lexer.Keep(NewlineT, NormalMode)
+      "\n", " " | "\n", "\t" -> lexer.Keep(NewlineToken, WhitespaceMode(0))
+      "\n", _ -> lexer.Keep(NewlineToken, NormalMode)
       _, _ -> lexer.NoMatch
     }
   }
@@ -394,8 +397,8 @@ fn lexers(_) {
     use _, lexeme, lookahead <- lexer.custom
 
     case lookahead {
-      " " | "\t" -> lexer.Keep(TextT(lexeme), WhitespaceMode(0))
-      _ -> lexer.Keep(TextT(lexeme), NormalMode)
+      " " | "\t" -> lexer.Keep(TextToken(lexeme), WhitespaceMode(0))
+      _ -> lexer.Keep(TextToken(lexeme), NormalMode)
     }
   }
 
@@ -409,47 +412,34 @@ fn lexers(_) {
   ]
 }
 
-pub fn lex(line: String) -> Result(BlockTokenList, lexer.Error) {
-  let lexers = lexer.advanced(lexers)
-  lexer.run_advanced(line, NormalMode, lexers)
-}
-
-fn do_parse_nodes() -> nibble.Parser(BlockNode, BlockToken, Nil) {
+fn do_parse_nodes() -> nibble.Parser(BlockNode, BlockT, Nil) {
   todo
-}
-
-pub fn parse_nodes(text: BlockTokenList) -> Option(BlockNode) {
-  case nibble.run(text, do_parse_nodes()) {
-    Ok(nodes) -> Some(nodes)
-    Error(..) -> None
-  }
 }
 
 fn do_parse_paragraph_cont(
   paragraph_text: StringBuilder,
-) -> nibble.Parser(BlockLeaf, BlockToken, Nil) {
+) -> nibble.Parser(BlockLeaf, BlockT, Nil) {
   todo
 }
 
-pub fn parse_paragraph_cont(
-  paragraph_text: StringBuilder,
-  text: BlockTokenList,
-) -> Option(BlockLeaf) {
-  nibble.run(text, do_parse_paragraph_cont(paragraph_text))
-  |> option.from_result()
-}
-
-fn do_parse_block_quote_cont() -> nibble.Parser(
-  lexer.Token(BlockToken),
-  BlockToken,
-  Nil,
-) {
+fn do_parse_block_quote_cont() -> nibble.Parser(BlockToken, BlockT, Nil) {
   todo
 }
 
-pub fn parse_block_quote_cont(text: BlockTokenList) -> Option(BlockTokenList) {
+fn parse_block_quote_cont(text: List(BlockToken)) -> Option(List(BlockToken)) {
   case nibble.run(text, do_parse_block_quote_cont()) {
     Ok(token) -> Some(drop_until(text, token))
     Error(..) -> None
   }
+}
+
+fn get_whitespace_length(whitespace: String) -> Int {
+  whitespace
+  |> string.replace("\t", "    ")
+  |> string.length()
+}
+
+fn drop_until(in list: List(a), until item: a) -> List(a) {
+  use list_item <- list.drop_while(list)
+  list_item != item
 }

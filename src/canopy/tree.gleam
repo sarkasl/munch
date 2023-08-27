@@ -55,17 +55,3 @@ pub fn reverse(node: Node(a)) -> Node(a) {
       )
   }
 }
-
-pub fn maybe_add(list: List(a), maybe_item: Option(a)) -> List(a) {
-  case maybe_item {
-    Some(item) -> [item, ..list]
-    None -> list
-  }
-}
-
-pub fn maybe_create(maybe_item: Option(a)) -> List(a) {
-  case maybe_item {
-    Some(item) -> [item]
-    None -> []
-  }
-}
