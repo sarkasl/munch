@@ -4,8 +4,8 @@ import gleam/int
 import gleam/io
 import nakai
 import nakai/html
-import canopy.{MarkdownElement, MarkdownNode}
-import canopy/tree.{Node}
+import gala.{MarkdownElement, MarkdownNode}
+import gala/tree.{Node}
 
 // pub fn render(node: MarkdownNode) -> String {
 //   let children =

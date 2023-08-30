@@ -1,15 +1,13 @@
-name = "canopy"
+name = "gala"
 version = "0.1.0"
 description = "Markdown parser for gleam"
 
 licences = ["Apache-2.0"]
-repository = { type = "github", user = "sarkasl", repo = "canopy" }
+repository = { type = "github", user = "sarkasl", repo = "gala" }
 # links = [{ title = "Website", href = "https://gleam.run" }]
 
-# todo remove nakai
 [dependencies]
 gleam_stdlib = "~> 0.30"
-nibble = "1.0.0-rc.3"
 
 [dev-dependencies]
 gleeunit = "~> 0.10"

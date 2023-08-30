@@ -11,7 +11,7 @@ description = "A Gleam project"
 
 [dependencies]
 gleam_stdlib = "~> 0.30"
-canopy = { path = "../.." }
+gala = { path = "../.." }
 nakai = "~> 0.8"
 
 [dev-dependencies]
