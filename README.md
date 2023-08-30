@@ -1,9 +1,11 @@
-# Canopy
+# Gala
 
-<!-- [![Package Version](https://img.shields.io/hexpm/v/canopy)](https://hex.pm/packages/canopy) -->
-<!-- [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/canopy/) -->
+<!-- [![Package Version](https://img.shields.io/hexpm/v/gala)](https://hex.pm/packages/gala) -->
+<!-- [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/gala/) -->
 
 Markdown parser in pure Gleam.
+
+WIP
 
 <!-- ## Quick start
 
@@ -18,7 +20,7 @@ gleam shell # Run an Erlang shell
 If available on Hex this package can be added to your Gleam project:
 
 ```sh
-gleam add canopy
+gleam add gala
 ```
 
-and its documentation can be found at <https://hexdocs.pm/canopy>. -->
+and its documentation can be found at <https://hexdocs.pm/gala>. -->
