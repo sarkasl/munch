@@ -1,5 +1,5 @@
 import gleam/string
-import gala/md
+import galla/md
 
 pub fn main() {
   let input =

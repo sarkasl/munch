@@ -1,7 +1,7 @@
-# Gala
+# Galla
 
-<!-- [![Package Version](https://img.shields.io/hexpm/v/gala)](https://hex.pm/packages/gala) -->
-<!-- [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/gala/) -->
+<!-- [![Package Version](https://img.shields.io/hexpm/v/galla)](https://hex.pm/packages/galla) -->
+<!-- [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/galla/) -->
 
 Markdown parser in pure Gleam.
 
@@ -20,7 +20,7 @@ gleam shell # Run an Erlang shell
 If available on Hex this package can be added to your Gleam project:
 
 ```sh
-gleam add gala
+gleam add galla
 ```
 
-and its documentation can be found at <https://hexdocs.pm/gala>. -->
+and its documentation can be found at <https://hexdocs.pm/galla>. -->

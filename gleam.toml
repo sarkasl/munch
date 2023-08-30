@@ -1,9 +1,9 @@
-name = "gala"
+name = "galla"
 version = "0.1.0"
 description = "Markdown parser for gleam"
 
 licences = ["Apache-2.0"]
-repository = { type = "github", user = "sarkasl", repo = "gala" }
+repository = { type = "github", user = "sarkasl", repo = "galla" }
 # links = [{ title = "Website", href = "https://gleam.run" }]
 
 [dependencies]
