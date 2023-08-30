@@ -345,6 +345,10 @@ fn heading_parser(tokens: List(String)) -> parser.ParserReturn(BlockNode) {
 
   let tokens = strip_3_whitespace(tokens)
   use #(tokens, hashes) <- then(parser.take_up_to(tokens, is_grapheme("#"), 6))
+  use _ <- parser.guard(
+    parser.eof(tokens),
+    Ok(#(tokens, Leaf(HeadingBlock(list.length(hashes), "")))),
+  )
   use #(tokens, _) <- then(parser.take_if(tokens, is_whitespace))
 
   let tokens = parser.try_drop(tokens, parser.take_while(_, is_whitespace))
@@ -356,24 +360,42 @@ fn heading_parser(tokens: List(String)) -> parser.ParserReturn(BlockNode) {
   ))
 }
 
-fn paragraph_parser(tokens: List(String)) -> parser.ParserReturn(BlockNode) {
-  let text =
-    tokens
-    |> parser.try_drop(parser.take_while(_, is_whitespace))
-    |> string.concat
+fn parse_paragraph_text(tokens: List(String)) -> String {
+  tokens
+  |> parser.try_drop(parser.take_while(_, is_whitespace))
+  |> string.concat
+}
 
+fn paragraph_parser(tokens: List(String)) -> parser.ParserReturn(BlockNode) {
+  let text = parse_paragraph_text(tokens)
   Ok(#([], Leaf(ParagraphBlock(string_builder.from_string(text)))))
 }
 
 fn block_parser(tokens: List(String)) -> parser.ParserReturn(BlockNode) {
   tokens
+  |> parser.try_drop(parser.take_while(_, is_grapheme("\n")))
   |> parser.one_of([heading_parser, quote_parser, paragraph_parser])
 }
 
 fn parse_block_quote_cont(tokens: List(String)) -> Result(List(String), Nil) {
-  todo
+  let wrapped =
+    tokens
+    |> strip_3_whitespace
+    |> parser.take(">")
+
+  use #(tokens, _) <- then(wrapped)
+
+  // modify the next token after quote
+  case tokens {
+    [" ", ..rest] -> Ok(rest)
+    ["\t", ..rest] -> Ok([" ", " ", ..rest])
+    _ -> Ok(tokens)
+  }
 }
 
 fn parse_paragraph_cont(tokens: List(String)) -> Result(String, Nil) {
-  todo
+  use _ <- then(parser.not(heading_parser(tokens)))
+  use _ <- then(parser.not(quote_parser(tokens)))
+
+  Ok(parse_paragraph_text(tokens))
 }

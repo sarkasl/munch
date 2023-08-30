@@ -12,6 +12,24 @@ pub type ParserReturn(a) =
 pub type Parser(a) =
   fn(List(String)) -> ParserReturn(a)
 
+pub fn not(result result: Result(a, Nil)) -> Result(Nil, Nil) {
+  case result {
+    Ok(_) -> Error(Nil)
+    Error(_) -> Ok(Nil)
+  }
+}
+
+pub fn guard(
+  result result: Result(a, Nil),
+  alt alternative: b,
+  cont fun: fn(Nil) -> b,
+) -> b {
+  case result {
+    Ok(_) -> alternative
+    Error(_) -> fun(Nil)
+  }
+}
+
 pub fn drop(
   over tokens: List(String),
   from parser: Parser(a),
