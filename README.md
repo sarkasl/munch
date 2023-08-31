@@ -3,7 +3,7 @@
 <!-- [![Package Version](https://img.shields.io/hexpm/v/munch)](https://hex.pm/packages/munch) -->
 <!-- [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/munch/) -->
 
-Markdown parser in pure Gleam. When you need to take a bigger bite then just a [nibble](https://github.com/hayleigh-dot-dev/gleam-nibble).
+Markdown parser in pure Gleam.
 
 WIP
 
