@@ -15,7 +15,6 @@ pub fn parse(markdown: String) -> Nil {
   |> block_pretty_print()
 }
 
-// ####################################################################
 // nodes ##############################################################
 
 pub type MarkdownElement {
@@ -49,7 +48,6 @@ pub type MarkdownElement {
 pub type MarkdownNode =
   tree.Node(MarkdownElement)
 
-// ####################################################################
 // prepare input ######################################################
 
 fn do_collapse_blank_lines(acc: List(String), line: String) -> List(String) {
@@ -66,7 +64,6 @@ fn collapse_blank_lines(lines: List(String)) -> List(String) {
   |> list.reverse()
 }
 
-// ####################################################################
 // block ast ##########################################################
 
 type BlockContainer {
@@ -141,7 +138,6 @@ fn try_create(item_result: Result(a, Nil)) -> List(a) {
   }
 }
 
-// ####################################################################
 // block parsing ######################################################
 
 type Openness {
@@ -280,7 +276,6 @@ fn block_parse(input: List(String)) -> BlockNode {
   |> block_invert()
 }
 
-// ####################################################################
 // block text parsing #################################################
 
 fn line_ending_parser(tokens: List(String)) -> parser.ParserReturn(Nil) {

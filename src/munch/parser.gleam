@@ -3,7 +3,6 @@ import gleam/list
 import gleam/int
 import gleam/result.{then}
 
-// ####################################################################
 // core ###############################################################
 
 pub type ParserReturn(a) =
@@ -121,7 +120,6 @@ pub fn while(with parser: Parser(Result(a, Nil))) -> Parser(List(a)) {
   fn(tokens) { do_while(tokens, parser) }
 }
 
-// ####################################################################
 // basics #############################################################
 
 pub fn eof(tokens: List(String)) -> ParserReturn(Nil) {
@@ -200,7 +198,6 @@ pub fn take_while(
   }
 }
 
-// ####################################################################
 // predicates #########################################################
 
 pub fn is_number(token: String) -> Bool {
@@ -222,7 +219,6 @@ pub fn is_grapheme(grapheme: String) -> fn(String) -> Bool {
   fn(token) { token == grapheme }
 }
 
-// ####################################################################
 // parsers ############################################################
 
 pub fn int(tokens: List(String)) -> ParserReturn(Int) {
