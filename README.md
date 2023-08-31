@@ -1,9 +1,9 @@
-# Galla
+# Munch
 
-<!-- [![Package Version](https://img.shields.io/hexpm/v/galla)](https://hex.pm/packages/galla) -->
-<!-- [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/galla/) -->
+<!-- [![Package Version](https://img.shields.io/hexpm/v/munch)](https://hex.pm/packages/munch) -->
+<!-- [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/munch/) -->
 
-Markdown parser in pure Gleam.
+Markdown parser in pure Gleam. When you need to take a bigger bite then just a [nibble](https://github.com/hayleigh-dot-dev/gleam-nibble).
 
 WIP
 
@@ -20,7 +20,7 @@ gleam shell # Run an Erlang shell
 If available on Hex this package can be added to your Gleam project:
 
 ```sh
-gleam add galla
+gleam add munch
 ```
 
-and its documentation can be found at <https://hexdocs.pm/galla>. -->
+and its documentation can be found at <https://hexdocs.pm/munch>. -->

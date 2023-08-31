@@ -1,10 +1,14 @@
-name = "galla"
+name = "munch"
 version = "0.1.0"
 description = "Markdown parser for gleam"
 
 licences = ["Apache-2.0"]
-repository = { type = "github", user = "sarkasl", repo = "galla" }
+repository = { type = "github", user = "sarkasl", repo = "munch" }
 # links = [{ title = "Website", href = "https://gleam.run" }]
+
+internal_modules = [
+  "munch/parser",
+]
 
 [dependencies]
 gleam_stdlib = "~> 0.30"

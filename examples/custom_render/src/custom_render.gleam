@@ -4,8 +4,8 @@ import gleam/int
 import gleam/io
 import nakai
 import nakai/html
-import galla.{MarkdownElement, MarkdownNode}
-import galla/tree.{Node}
+import munch.{MarkdownElement, MarkdownNode}
+import munch/tree.{Node}
 
 // pub fn render(node: MarkdownNode) -> String {
 //   let children =

@@ -3,8 +3,8 @@ import gleam/list
 import gleam/io
 import gleam/string_builder.{StringBuilder}
 import gleam/result.{then}
-import galla/tree
-import galla/parser.{is_grapheme, is_whitespace}
+import munch/tree
+import munch/parser.{is_grapheme, is_whitespace}
 
 pub fn parse(markdown: String) -> Nil {
   markdown
