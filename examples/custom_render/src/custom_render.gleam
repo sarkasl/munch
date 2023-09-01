@@ -2,10 +2,11 @@ import gleam/list
 import gleam/string
 import gleam/int
 import gleam/io
+import gleam/option
 import nakai
 import nakai/html
-import munch.{MarkdownElement, MarkdownNode}
-import munch/tree.{Node}
+import nakai/html/attrs
+import munch/md.{MarkdownNode}
 
 // pub fn render(node: MarkdownNode) -> String {
 //   let children =
@@ -26,27 +27,70 @@ import munch/tree.{Node}
 //   }
 // }
 
-// pub fn render_nakai(node: MarkdownNode) -> html.Node(a) {
-//   let children = list.map(node.children, render_nakai)
+pub fn render_nakai(node: MarkdownNode) -> html.Node(a) {
+  let children = list.map(node.children, render_nakai)
 
-//   case node.value {
-//     Document -> html.div([], children)
-//     Quote -> html.blockquote([], children)
-//     Paragraph(text) -> html.p_text([], text)
-//     Heading(level, text) ->
-//       case level {
-//         1 -> html.h1_text([], text)
-//         2 -> html.h2_text([], text)
-//         3 -> html.h3_text([], text)
-//         4 -> html.h4_text([], text)
-//         5 -> html.h5_text([], text)
-//         _ -> html.h6_text([], text)
-//       }
-//     NumberedList -> html.ol([], children)
-//     ListItem -> html.li([], children)
-//   }
-// }
-
+  case node.value {
+    md.Document -> html.Fragment(children)
+    md.ThematicBreak -> html.hr([])
+    md.Heading(level) ->
+      case level {
+        1 -> html.h1([], children)
+        2 -> html.h2([], children)
+        3 -> html.h3([], children)
+        4 -> html.h4([], children)
+        5 -> html.h5([], children)
+        _ -> html.h6([], children)
+      }
+    md.CodeBlock(info, text) ->
+      html.pre([], [html.code_text([attrs.class("language-" <> info)], text)])
+    md.HtmlBlock(text) -> html.UnsafeText(text)
+    md.Paragraph -> html.p([], children)
+    md.BlockQuote -> html.blockquote([], children)
+    md.Table -> html.table([], children)
+    md.TableHeader -> html.thead([], children)
+    md.TableBody -> html.tbody([], children)
+    md.TableRow -> html.tr([], children)
+    md.TableHeaderCell -> html.th([], children)
+    md.TableDataCell -> html.td([], children)
+    md.UnorderedList -> html.ul([], children)
+    md.OrderedList(1) -> html.ol([], children)
+    md.OrderedList(start) ->
+      html.ol([attrs.Attr("start", int.to_string(start))], children)
+    md.ListItem -> html.li([], children)
+    md.TaskListItem(True) ->
+      html.li(
+        [],
+        [
+          html.input([
+            attrs.type_("checkbox"),
+            attrs.disabled(),
+            attrs.checked(),
+          ]),
+          ..children
+        ],
+      )
+    md.TaskListItem(False) ->
+      html.li(
+        [],
+        [html.input([attrs.type_("checkbox"), attrs.disabled()]), ..children],
+      )
+    md.Text(text) -> html.Text(text)
+    md.CodeSpan(text) -> html.code_text([], text)
+    md.Emphasis -> html.em([], children)
+    md.StrongEmphasis -> html.strong([], children)
+    md.StrikeThrough -> html.del([], children)
+    md.Link(href, option.None) -> html.a([attrs.href(href)], children)
+    md.Link(href, option.Some(title)) ->
+      html.a([attrs.href(href), attrs.title(title)], children)
+    md.Image(src, alt, option.None) ->
+      html.img([attrs.src(src), attrs.alt(alt)])
+    md.Image(src, alt, option.Some(title)) ->
+      html.img([attrs.src(src), attrs.alt(alt), attrs.title(title)])
+    md.Softbreak -> html.Text("\n")
+    md.Hardbreak -> html.br([])
+  }
+}
 // fn add_heading(acc: MarkdownNode, node: MarkdownElement) -> MarkdownNode {
 //   case node {
 //     Heading(level, _) ->

@@ -4,7 +4,7 @@ import gleam/io
 import gleam/string_builder.{StringBuilder}
 import gleam/result.{then}
 import gleam/regex
-import gleam/option
+import gleam/option.{None, Option, Some}
 import munch/tree
 import munch/parser.{is_grapheme, is_whitespace}
 
@@ -21,26 +21,27 @@ pub type MarkdownElement {
   Document
   ThematicBreak
   Heading(level: Int)
-  SetextHeading
   CodeBlock(info: String, text: String)
   HtmlBlock(text: String)
   Paragraph
   BlockQuote
   Table
   TableHeader
+  TableBody
   TableRow
-  UnorderedList(tight: Bool)
-  OrderedList(start: Int, tight: Bool)
+  TableHeaderCell
+  TableDataCell
+  UnorderedList
+  OrderedList(start: Int)
   ListItem
-  TaskList(tight: Bool)
-  TaskItem(checked: Bool)
+  TaskListItem(checked: Bool)
   Text(text: String)
   CodeSpan(text: String)
   Emphasis
   StrongEmphasis
   StrikeThrough
-  Link
-  Image
+  Link(href: String, title: Option(String))
+  Image(src: String, alt: String, title: Option(String))
   Softbreak
   Hardbreak
 }
@@ -52,8 +53,8 @@ pub type MarkdownNode =
 
 fn process_match(match: regex.Match) -> List(String) {
   case match.submatches {
-    [option.Some(_), option.Some(line)] -> ["\n", ..string.to_graphemes(line)]
-    [option.None, option.Some(line)] -> string.to_graphemes(line)
+    [Some(_), Some(line)] -> ["\n", ..string.to_graphemes(line)]
+    [None, Some(line)] -> string.to_graphemes(line)
     _ -> panic
   }
 }
