@@ -3,28 +3,9 @@ import munch/md
 
 pub fn main() {
   let input =
-    string.trim(
-      "
-# On the importance of headings
-
-This paragraph is going for pretty long.
-This should continue it  
-i wonder what this does
-
-this should not
-
-> quote
-> cont mayb
-> > yaya
-> this should be wierd
-> # hg
-
-> separate
-
-### closing
-### thoughts
-  ",
-    )
+    "
+>\t\tfoo
+  "
 
   md.parse(input)
 }

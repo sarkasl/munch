@@ -60,10 +60,9 @@ fn process_match(match: regex.Match) -> List(String) {
 
 fn preprocess(markdown: String) -> List(List(String)) {
   let assert Ok(pattern) =
-    regex.from_string("(?:^|[\\r\\n]+\\s*([\\r\\n]+)|[\\r\\n])(.*)")
+    regex.from_string("(?:^|[\\r\\n]+\\s*([\\r\\n]+)|[\\r\\n])(.*[^\\s].*)")
 
   markdown
-  |> string.trim()
   |> regex.scan(pattern, _)
   |> list.map(process_match)
 }
@@ -82,9 +81,9 @@ type BlockContainer {
 type BlockLeaf {
   ParagraphBlock(text: StringBuilder)
   HeadingBlock(level: Int, text: String)
+  IndentCodeBlock(text: StringBuilder)
 }
 
-// IndentCodeBlock(text: StringBuilder)
 // FencedCodeBlock(info: String, text: StringBuilder)
 // ThematicBreakB
 
@@ -183,15 +182,26 @@ fn append_container(
 fn append_leaf(leaf: BlockLeaf, tokens: List(String)) -> #(BlockLeaf, Dirtiness) {
   case leaf {
     HeadingBlock(..) -> #(leaf, Clean)
-    ParagraphBlock(paragraph_tokens) -> {
+    ParagraphBlock(paragraph_content) ->
       case parse_paragraph_cont(tokens) {
         Ok(paragraph_cont) -> #(
-          ParagraphBlock(string_builder.append(paragraph_tokens, paragraph_cont)),
+          ParagraphBlock(string_builder.append(
+            paragraph_content,
+            paragraph_cont,
+          )),
           Dirty,
         )
         Error(_) -> #(leaf, Clean)
       }
-    }
+
+    IndentCodeBlock(code_content) ->
+      case parse_indent_code_cont(tokens) {
+        Ok(code_cont) -> #(
+          IndentCodeBlock(string_builder.append(code_content, code_cont)),
+          Dirty,
+        )
+        Error(_) -> #(leaf, Clean)
+      }
   }
 }
 
@@ -288,11 +298,24 @@ fn line_ending_parser(tokens: List(String)) -> parser.ParserReturn(Nil) {
 }
 
 fn strip_3_whitespace(tokens: List(String)) -> List(String) {
+  // this could be optimized
   case tokens {
     [" ", " ", " ", ..rest] -> rest
     [" ", " ", ..rest] -> rest
     [" ", ..rest] -> rest
     _ -> tokens
+  }
+}
+
+fn strip_4_whitespace(tokens: List(String)) -> Result(List(String), Nil) {
+  // this could be optimized
+  case tokens {
+    ["\t", ..rest] -> Ok(rest)
+    [" ", "\t", ..rest] -> Ok(rest)
+    [" ", " ", "\t", ..rest] -> Ok(rest)
+    [" ", " ", " ", "\t", ..rest] -> Ok(rest)
+    [" ", " ", " ", " ", ..rest] -> Ok(rest)
+    _ -> Error(Nil)
   }
 }
 
@@ -358,6 +381,17 @@ fn heading_parser(tokens: List(String)) -> parser.ParserReturn(BlockNode) {
   ))
 }
 
+fn indent_code_parser(tokens: List(String)) -> parser.ParserReturn(BlockNode) {
+  use tokens <- then(strip_4_whitespace(tokens))
+
+  let text =
+    tokens
+    |> string.concat
+    |> string_builder.from_string
+
+  Ok(#(tokens, Leaf(IndentCodeBlock(text))))
+}
+
 fn parse_paragraph_text(tokens: List(String)) -> String {
   tokens
   |> parser.try_drop(parser.take_while(_, is_whitespace))
@@ -372,7 +406,12 @@ fn paragraph_parser(tokens: List(String)) -> parser.ParserReturn(BlockNode) {
 fn block_parser(tokens: List(String)) -> parser.ParserReturn(BlockNode) {
   tokens
   |> parser.try_drop(parser.take_while(_, is_grapheme("\n")))
-  |> parser.one_of([heading_parser, quote_parser, paragraph_parser])
+  |> parser.one_of([
+    indent_code_parser,
+    heading_parser,
+    quote_parser,
+    paragraph_parser,
+  ])
 }
 
 fn parse_block_quote_cont(tokens: List(String)) -> Result(List(String), Nil) {
@@ -397,4 +436,11 @@ fn parse_paragraph_cont(tokens: List(String)) -> Result(String, Nil) {
   use _ <- then(parser.not(quote_parser(tokens)))
 
   Ok(parse_paragraph_text(tokens))
+}
+
+fn parse_indent_code_cont(tokens: List(String)) -> Result(String, Nil) {
+  case strip_4_whitespace(tokens) {
+    Ok(rest) -> Ok(string.concat(rest))
+    Error(_) -> Error(Nil)
+  }
 }
