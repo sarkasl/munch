@@ -3,14 +3,14 @@ import gleam/list
 import gleam/io
 import gleam/string_builder.{StringBuilder}
 import gleam/result.{then}
+import gleam/regex
+import gleam/option
 import munch/tree
 import munch/parser.{is_grapheme, is_whitespace}
 
 pub fn parse(markdown: String) -> Nil {
   markdown
-  |> string.replace("\r\n", "\n")
-  |> string.split("\n")
-  |> collapse_blank_lines()
+  |> preprocess()
   |> block_parse()
   |> block_pretty_print()
 }
@@ -50,18 +50,22 @@ pub type MarkdownNode =
 
 // prepare input ######################################################
 
-fn do_collapse_blank_lines(acc: List(String), line: String) -> List(String) {
-  case string.length(string.trim_right(line)), acc {
-    0, [last, ..rest] -> ["\n" <> last, ..rest]
-    0, [] -> ["\n"]
-    _, _ -> [line, ..acc]
+fn process_match(match: regex.Match) -> List(String) {
+  case match.submatches {
+    [option.Some(_), option.Some(line)] -> ["\n", ..string.to_graphemes(line)]
+    [option.None, option.Some(line)] -> string.to_graphemes(line)
+    _ -> panic
   }
 }
 
-fn collapse_blank_lines(lines: List(String)) -> List(String) {
-  lines
-  |> list.fold([], do_collapse_blank_lines)
-  |> list.reverse()
+fn preprocess(markdown: String) -> List(List(String)) {
+  let assert Ok(pattern) =
+    regex.from_string("(?:^|[\\r\\n]+\\s*([\\r\\n]+)|[\\r\\n])(.*)")
+
+  markdown
+  |> string.trim()
+  |> regex.scan(pattern, _)
+  |> list.map(process_match)
 }
 
 // block ast ##########################################################
@@ -265,12 +269,11 @@ fn do_block_parse(
   }
 }
 
-fn parse_line(node: BlockNode, line: String) -> BlockNode {
-  let tokens = string.to_graphemes(line)
+fn parse_line(node: BlockNode, tokens: List(String)) -> BlockNode {
   do_block_parse(node, BlockParserState(tokens, Open, Clean)).0
 }
 
-fn block_parse(input: List(String)) -> BlockNode {
+fn block_parse(input: List(List(String))) -> BlockNode {
   input
   |> list.fold(Container(DocumentBlock, []), parse_line)
   |> block_invert()
@@ -389,6 +392,7 @@ fn parse_block_quote_cont(tokens: List(String)) -> Result(List(String), Nil) {
 }
 
 fn parse_paragraph_cont(tokens: List(String)) -> Result(String, Nil) {
+  use _ <- then(parser.not(parser.take(tokens, "\n")))
   use _ <- then(parser.not(heading_parser(tokens)))
   use _ <- then(parser.not(quote_parser(tokens)))
 
